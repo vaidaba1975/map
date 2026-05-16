@@ -1,0 +1,325 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Map – Utena</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+    }
+
+    #map {
+        height: 100vh;
+        width: 100%;
+    }
+
+    .activity-icon {
+        background: #0b75d1;
+        color: white;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 34px;
+        font-weight: bold;
+        border: 3px solid white;
+        box-shadow: 0 0 8px rgba(0,0,0,0.45);
+        font-size: 17px;
+    }
+
+    .food-icon {
+        background: #e46c0a;
+        color: white;
+        min-width: 52px;
+        height: 32px;
+        border-radius: 18px;
+        text-align: center;
+        line-height: 32px;
+        font-weight: bold;
+        border: 3px solid white;
+        box-shadow: 0 0 8px rgba(0,0,0,0.45);
+        font-size: 16px;
+        padding: 0 6px;
+        white-space: nowrap;
+    }
+
+    .legend {
+        background: white;
+        padding: 14px;
+        border-radius: 12px;
+        line-height: 1.45;
+        box-shadow: 0 0 12px rgba(0,0,0,0.25);
+        font-size: 13px;
+        max-width: 390px;
+        max-height: 82vh;
+        overflow-y: auto;
+    }
+
+    .legend h3 {
+        margin: 0 0 8px 0;
+        color: #0b75d1;
+        font-size: 17px;
+    }
+
+    .legend h3.lunch {
+        color: #c95f06;
+        margin-top: 14px;
+        border-top: 1px solid #ddd;
+        padding-top: 12px;
+    }
+
+    .legend-item {
+        margin-bottom: 8px;
+    }
+
+    .num {
+        display: inline-block;
+        width: 23px;
+        height: 23px;
+        border-radius: 50%;
+        color: white;
+        text-align: center;
+        line-height: 23px;
+        font-weight: bold;
+        margin-right: 6px;
+    }
+
+    .blue { background: #0b75d1; }
+    .orange { background: #e46c0a; }
+
+    .addr {
+        display: block;
+        margin-left: 34px;
+        color: #333;
+        font-size: 12px;
+    }
+
+    .popup-title {
+        font-weight: bold;
+        font-size: 15px;
+    }
+
+    a {
+        color: #0b75d1;
+    }
+</style>
+</head>
+
+<body>
+<div id="map"></div>
+
+<script>
+var map = L.map('map').setView([55.5010, 25.6000], 14);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+// Activity locations. Some markers are slightly shifted where the lunch place is in the same building.
+var activityLocations = [
+    {
+        number: "1",
+        title: "Dormitory / Faculty",
+        address: "Maironis str. 18, Utena",
+        searchAddress: "Maironio g. 18, Utena",
+        coords: [55.4972, 25.5976]
+    },
+    {
+        number: "2",
+        title: "Conference Hall (Lectures, Morning Coffee)",
+        address: "Utenio sq. 2, Utena",
+        searchAddress: "Utenio a. 2, Utena",
+        coords: [55.49765, 25.60255]
+    },
+    {
+        number: "3",
+        title: "Bowling Tournament",
+        address: "Aukštaičių g. 3B, Utena",
+        searchAddress: "Aukštaičių g. 3B, Utena",
+        coords: [55.5050, 25.5907]
+    },
+    {
+        number: "4",
+        title: "Laboratory Work (May 19; May 20)",
+        address: "Aukštaičių g. 5, Utena",
+        searchAddress: "Aukštaičių g. 5, Utena",
+        coords: [55.50515, 25.59095]
+    }
+];
+
+var lunchPlaces = [
+    {
+        number: "1",
+        title: "The vocational school cafeteria",
+        address: "Aukštaičių g. 5, Utena",
+        searchAddress: "Aukštaičių g. 5, Utena",
+        coords: [55.50565, 25.59175]
+    },
+    {
+        number: "2",
+        title: "Café (Faculty of Medicine)",
+        address: "Utenio sq. 2, Utena (Basement)",
+        searchAddress: "Utenio a. 2, Utena",
+        coords: [55.49820, 25.60345]
+    },
+    {
+        number: "3",
+        title: "Restaurant FoodLab",
+        address: "J. Basanavičiaus g. 54, Utena",
+        searchAddress: "J. Basanavičiaus g. 54, Utena",
+        coords: [55.5008, 25.6024]
+    },
+    {
+        number: "4",
+        title: "Pizza Charlie",
+        address: "Aušros g. 78, Utena",
+        searchAddress: "Aušros g. 78, Utena",
+        coords: [55.5038, 25.5965]
+    },
+    {
+        number: "5",
+        title: "Wine Bar and Restaurant Burgundija",
+        address: "J. Basanavičiaus g. 55, Utena",
+        searchAddress: "J. Basanavičiaus g. 55, Utena",
+        coords: [55.5012, 25.6028]
+    },
+    {
+        number: "6",
+        title: "Restaurant CAPARIS",
+        address: "Aušros g. 21, Utena",
+        searchAddress: "Aušros g. 21, Utena",
+        coords: [55.4995, 25.6015]
+    },
+    {
+        number: "7",
+        title: "Café PAKRANTĖS TERASA",
+        address: "Aušros g. 35A, Utena",
+        searchAddress: "Aušros g. 35A, Utena",
+        coords: [55.5010, 25.6070]
+    }
+];
+
+var bounds = [];
+
+activityLocations.forEach(function(place) {
+    var icon = L.divIcon({
+        className: '',
+        html: '<div class="activity-icon">' + place.number + '</div>',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+    });
+
+    var marker = L.marker(place.coords, {icon: icon}).addTo(map);
+    bounds.push(place.coords);
+
+    marker.bindPopup(
+        '<div class="popup-title">Activity ' + place.number + '. ' + place.title + '</div>' +
+        place.address + '<br><br>' +
+        '<a href="https://www.google.com/maps/search/?api=1&query=' +
+        encodeURIComponent(place.searchAddress) +
+        '" target="_blank">Open in Google Maps</a>'
+    );
+});
+
+lunchPlaces.forEach(function(place) {
+    var icon = L.divIcon({
+        className: '',
+        html: '<div class="food-icon">🍴 ' + place.number + '</div>',
+        iconSize: [62, 34],
+        iconAnchor: [31, 17]
+    });
+
+    var marker = L.marker(place.coords, {icon: icon}).addTo(map);
+    bounds.push(place.coords);
+
+    marker.bindPopup(
+        '<div class="popup-title">Lunch ' + place.number + '. ' + place.title + '</div>' +
+        place.address + '<br><br>' +
+        '<a href="https://www.google.com/maps/search/?api=1&query=' +
+        encodeURIComponent(place.searchAddress) +
+        '" target="_blank">Open in Google Maps</a>'
+    );
+});
+
+map.fitBounds(bounds, {padding: [45, 45]});
+
+var legend = L.control({position: 'bottomright'});
+
+legend.onAdd = function () {
+    var div = L.DomUtil.create('div', 'legend');
+
+    div.innerHTML = `
+        <h3>Activity Locations</h3>
+
+        <div class="legend-item">
+            <span class="num blue">1</span><b>Dormitory / Faculty</b>
+            <span class="addr">Maironis str. 18, Utena</span>
+        </div>
+
+        <div class="legend-item">
+            <span class="num blue">2</span><b>Conference Hall</b>
+            <span class="addr">Lectures, Morning Coffee<br>Utenio sq. 2, Utena</span>
+        </div>
+
+        <div class="legend-item">
+            <span class="num blue">3</span><b>Bowling Tournament</b>
+            <span class="addr">Aukštaičių g. 3B, Utena</span>
+        </div>
+
+        <div class="legend-item">
+            <span class="num blue">4</span><b>Laboratory Work</b>
+            <span class="addr">May 19; May 20<br>Aukštaičių g. 5, Utena</span>
+        </div>
+
+        <h3 class="lunch">Places to Have Lunch</h3>
+
+        <div class="legend-item">
+            <span class="num orange">1</span><b>🍴 The vocational school cafeteria</b>
+            <span class="addr">Aukštaičių g. 5, Utena</span>
+        </div>
+
+        <div class="legend-item">
+            <span class="num orange">2</span><b>🍴 Café (Faculty of Medicine)</b>
+            <span class="addr">Utenio sq. 2, Utena (Basement)</span>
+        </div>
+
+        <div class="legend-item">
+            <span class="num orange">3</span><b>🍴 Restaurant FoodLab</b>
+            <span class="addr">J. Basanavičiaus g. 54, Utena</span>
+        </div>
+
+        <div class="legend-item">
+            <span class="num orange">4</span><b>🍴 Pizza Charlie</b>
+            <span class="addr">Aušros g. 78, Utena</span>
+        </div>
+
+        <div class="legend-item">
+            <span class="num orange">5</span><b>🍴 Wine Bar and Restaurant Burgundija</b>
+            <span class="addr">J. Basanavičiaus g. 55, Utena</span>
+        </div>
+
+        <div class="legend-item">
+            <span class="num orange">6</span><b>🍴 Restaurant CAPARIS</b>
+            <span class="addr">Aušros g. 21, Utena</span>
+        </div>
+
+        <div class="legend-item">
+            <span class="num orange">7</span><b>🍴 Café PAKRANTĖS TERASA</b>
+            <span class="addr">Aušros g. 35A, Utena</span>
+        </div>
+    `;
+
+    return div;
+};
+
+legend.addTo(map);
+</script>
+</body>
+</html>
